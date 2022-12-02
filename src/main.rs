@@ -28,11 +28,14 @@ async fn main() -> std::io::Result<()> {
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
         .init();
 
-    tokio::task::spawn_blocking(|| db_config::init());
+    let pool = web::block(|| {
+        db_config::init()
+    }).await.unwrap();
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .app_data(pool.clone())
             .service(
                 // prefixes all resources and routes attached to it...
                 web::scope("/app")

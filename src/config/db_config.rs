@@ -12,16 +12,17 @@ lazy_static! {
     };
 }
 
-pub fn init() {
+pub fn init() -> Pool {
     let filepath = &crate::APP_CONFIG.db.sqlite.filepath;
     let path = Path::new(&filepath);
 
     init_file(path);
 
     let pool = init_pool(path);
-    println!("{:#?}", pool);
 
-    migrate_db(pool);
+    migrate_db(&pool);
+
+    pool
 }
 
 fn init_file(path: &Path) {
@@ -41,7 +42,7 @@ fn init_pool(path: &Path) -> Pool {
 }
 
 #[tokio::main]
-async fn migrate_db(pool: Pool) {
+async fn migrate_db(pool: &Pool) {
     let conn = pool.get().await.unwrap();
     let exist: i64 = conn
         .interact(|conn| {
