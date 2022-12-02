@@ -1,0 +1,15 @@
+server:
+  bind: "127.0.0.1"
+  port: 8888
+
+auth:
+  token: "25413357-a6de-4cae-932f-442474c42eb4"
+
+db:
+  sqlite:
+    filepath: "/data/sqlite/db/store_rs.db"
+    max_pool_size: 5
+
+log:
+  # 日志级别 trace debug info warn error
+  level: info
