@@ -9,6 +9,7 @@ use std::str::FromStr;
 use actix_web::{web, App, HttpServer};
 use config::db_config;
 use config::router_config;
+use config::auth_config;
 use tracing_actix_web::TracingLogger;
 
 pub use crate::config::app_config::APP_CONFIG;
@@ -27,6 +28,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
+            .wrap(auth_config::Auth)
             .app_data(pool.clone())
             .configure(router_config::init)
     })
