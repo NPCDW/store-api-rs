@@ -3,43 +3,43 @@ use serde::{Serialize, Deserialize};
 use crate::util::file_util;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Log {
+pub struct AppConfigLog {
     pub level: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Sqlite {
+pub struct AppConfigDbSqlite {
     pub filepath: String,
     pub max_pool_size: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Db {
-    pub sqlite: Sqlite,
+pub struct AppConfigDb {
+    pub sqlite: AppConfigDbSqlite,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Auth {
+pub struct AppConfigAuth {
     pub token: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Server {
+pub struct AppConfigServer {
     pub bind: String,
     pub port: u16,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
-    pub server: Server,
-    pub auth: Auth,
-    pub db: Db,
-    pub log: Log,
+pub struct AppConfig {
+    pub server: AppConfigServer,
+    pub auth: AppConfigAuth,
+    pub db: AppConfigDb,
+    pub log: AppConfigLog,
 }
 
 lazy_static! {
     #[derive(Debug)]
-    pub static ref APP_CONFIG: Config = {
+    pub static ref APP_CONFIG: AppConfig = {
         let dir = std::env::current_dir().unwrap_or_else(|e| {
             panic!("获取程序目录失败：{:?}", e);
         });
