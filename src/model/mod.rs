@@ -1,4 +1,2 @@
-// db entity
-// enum
-// const
-// common 
+pub mod common;
+pub mod entity;

@@ -1,6 +1,7 @@
 mod config;
 mod util;
 mod service;
+mod model;
 
 #[macro_use]
 extern crate lazy_static;
