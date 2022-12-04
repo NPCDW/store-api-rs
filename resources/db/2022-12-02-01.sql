@@ -6,7 +6,7 @@ create table version
     version     varchar(20) NOT NULL UNIQUE
 );
 
-insert into `version` (`version`) values ('2022-09-21-00');
+insert into `version` (`version`) values ('2022-12-02-01');
 
 create table goods
 (

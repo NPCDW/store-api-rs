@@ -7,12 +7,14 @@ lazy_static! {
     #[derive(Debug)]
     pub static ref DB_VERSION_LIST: Vec<String> = {
         let mut list = vec![];
-        list.push("2022-12-02-01.sql".to_string());
+        list.push("2022-12-02-01".to_string());
         list
     };
 }
 
 pub fn init() -> Pool {
+    tracing::info!("Init DB Config");
+
     let filepath = &crate::APP_CONFIG.db.sqlite.filepath;
     let path = Path::new(&filepath);
 
@@ -22,6 +24,7 @@ pub fn init() -> Pool {
 
     migrate_db(&pool);
 
+    tracing::info!("Finish Init DB Config");
     pool
 }
 
@@ -30,6 +33,7 @@ fn init_file(path: &Path) {
 }
 
 fn init_pool(path: &Path) -> Pool {
+    tracing::info!("Init DB Connect Pool");
     // let cfg = Config::new(path);
     let cfg = Config {
         path: path.to_path_buf(),
@@ -38,11 +42,14 @@ fn init_pool(path: &Path) -> Pool {
             ..Default::default()
         })
     };
-    cfg.create_pool(Runtime::Tokio1).unwrap()
+    let pool = cfg.create_pool(Runtime::Tokio1).unwrap();
+    tracing::info!("Finish Init DB Connect Pool");
+    pool
 }
 
 #[tokio::main]
 async fn migrate_db(pool: &Pool) {
+    tracing::info!("Migrate DB");
     let conn = pool.get().await.unwrap();
     let exist: i64 = conn
         .interact(|conn| {
@@ -63,17 +70,26 @@ async fn migrate_db(pool: &Pool) {
                 row.get(0)
             }).await.unwrap().unwrap();
     }
+    if current_version[..] == DB_VERSION_LIST.last().unwrap()[..] {
+        tracing::info!("DB version is match, current version {}", &current_version);
+        return;
+    }
+    tracing::info!("DB version require {}, Current version is {}, start upgrade db", &DB_VERSION_LIST.last().unwrap(), &current_version);
     for item in &*DB_VERSION_LIST {
         if current_version[..] < item[..] {
             let dir = std::env::current_dir().unwrap_or_else(|e| {
                 panic!("获取程序目录失败：{:?}", e);
             });
-            let sql = file_util::read_file(&dir.join("resources/db/").join(item)).unwrap();
-            // println!("{}", sql);
+            let sql_path = dir.join("resources/db/").join(format!("{}.sql", item));
+            let sql = file_util::read_file(&sql_path).unwrap();
             conn
             .interact(move |conn| {
-                let _ = conn.execute_batch(&sql);
+                let result = conn.execute_batch(&sql);
+                if result.is_err() {
+                    tracing::error!("{:?}", result);
+                };
             }).await.unwrap();
         }
     }
+    tracing::info!("DB upgrade finished");
 }
