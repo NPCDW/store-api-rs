@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path};
 use deadpool_sqlite::{Config, Runtime, Pool, PoolConfig};
 
 use crate::util::file_util;
@@ -10,47 +10,40 @@ lazy_static! {
         list.push("2022-12-02-01".to_string());
         list
     };
-}
-
-pub fn init() -> Pool {
-    tracing::info!("Init DB Config");
-
-    let filepath = &crate::APP_CONFIG.db.sqlite.filepath;
-    let path = Path::new(&filepath);
-
-    init_file(path);
-
-    let pool = init_pool(path);
-
-    migrate_db(&pool);
-
-    tracing::info!("Finish Init DB Config");
-    pool
-}
-
-fn init_file(path: &Path) {
-    file_util::create_file(path);
-}
-
-fn init_pool(path: &Path) -> Pool {
-    tracing::info!("Init DB Connect Pool");
-    // let cfg = Config::new(path);
-    let cfg = Config {
-        path: path.to_path_buf(),
-        pool: Some(PoolConfig {
-            max_size: crate::APP_CONFIG.db.sqlite.max_pool_size,
-            ..Default::default()
-        })
+    pub static ref DB_CONN_POOL: Pool = {
+        tracing::info!("Init DB Connect Pool");
+        let filepath = &crate::APP_CONFIG.db.sqlite.filepath;
+        let db_filepath = Path::new(&filepath);
+        // let cfg = Config::new(path);
+        let cfg = Config {
+            path: db_filepath.to_path_buf(),
+            pool: Some(PoolConfig {
+                max_size: crate::APP_CONFIG.db.sqlite.max_pool_size,
+                ..Default::default()
+            })
+        };
+        let pool = cfg.create_pool(Runtime::Tokio1).unwrap();
+        tracing::info!("Finish Init DB Connect Pool");
+        pool
     };
-    let pool = cfg.create_pool(Runtime::Tokio1).unwrap();
-    tracing::info!("Finish Init DB Connect Pool");
-    pool
+}
+
+pub fn init() {
+    init_file();
+
+    migrate_db();
+}
+
+fn init_file() {
+    let filepath = &crate::APP_CONFIG.db.sqlite.filepath;
+    let db_filepath = Path::new(&filepath);
+    file_util::create_file(db_filepath);
 }
 
 #[tokio::main]
-async fn migrate_db(pool: &Pool) {
+async fn migrate_db() {
     tracing::info!("Migrate DB");
-    let conn = pool.get().await.unwrap();
+    let conn = DB_CONN_POOL.get().await.unwrap();
     let exist: i64 = conn
         .interact(|conn| {
             let mut stmt = conn.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'version'")?;

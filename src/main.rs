@@ -2,6 +2,7 @@ mod config;
 mod util;
 mod service;
 mod model;
+mod mapper;
 
 #[macro_use]
 extern crate lazy_static;
@@ -22,7 +23,7 @@ async fn main() -> std::io::Result<()> {
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
         .init();
 
-    let pool = web::block(|| {
+    web::block(|| {
         db_config::init()
     }).await.unwrap();
 
@@ -30,7 +31,6 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(TracingLogger::default())
             .wrap(auth_config::Auth)
-            .app_data(pool.clone())
             .configure(router_config::init)
     })
     .bind((APP_CONFIG.server.bind.as_str(), APP_CONFIG.server.port))?

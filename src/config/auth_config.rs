@@ -64,9 +64,13 @@ where
         let fut = self.service.call(req);
 
         Box::pin(async move {
-            let res = fut.await?;
+            let res = fut.await;
 
-            Ok(res)
+            if res.is_err() {
+                return Err(error::ErrorInternalServerError("Internal Server Error"));
+            }
+
+            Ok(res.unwrap())
         })
     }
 }
