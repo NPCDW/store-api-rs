@@ -1,10 +1,28 @@
 use actix_web::{get, Responder, post, put, delete, web, HttpResponse};
-use crate::{mapper::goods_mapper, model::{common::response_result::ResponseResult, entity::goods::Goods}};
+use crate::{mapper::goods_mapper, model::{common::{response_result::ResponseResult, table_info::TableInfo}, entity::goods::Goods}};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize, Serialize)]
+struct ListQuery {
+    page_number: usize,
+    page_size: usize,
+    name: Option<String>,
+}
+
 #[get("/list")]
-async fn list() -> impl Responder {
-    ""
+async fn list(info: web::Query<ListQuery>) -> impl Responder {
+    let query = info.into_inner();
+    let name = query.name.clone();
+    let count = web::block(move || {
+        goods_mapper::count(name)
+    }).await.unwrap();
+    if count <= 0 {
+        return ResponseResult::ok_data(TableInfo::<Goods>::new(count, vec![]));
+    }
+    let list = web::block(move || {
+        goods_mapper::list(query.page_number, query.page_size, query.name)
+    }).await.unwrap();
+    ResponseResult::ok_data(TableInfo::new(count, list))
 }
 
 #[get("/getInfo/{id}")]
@@ -49,11 +67,27 @@ async fn create(info: web::Json<Goods>) -> HttpResponse {
 }
 
 #[put("/update")]
-async fn update() -> HttpResponse {
-    ResponseResult::ok()
+async fn update(info: web::Json<Goods>) -> HttpResponse {
+    let goods = info.into_inner();
+    let res = web::block(move || {
+        goods_mapper::update(goods)
+    }).await.unwrap();
+    if res > 0 {
+        ResponseResult::ok_data(res)
+    } else {
+        ResponseResult::error_msg("update fail".to_string())
+    }
 }
 
 #[delete("/remove/{id}")]
-async fn remove() -> HttpResponse {
-    ResponseResult::ok()
+async fn remove(path: web::Path<u32>) -> HttpResponse {
+    let id = path.into_inner();
+    let res = web::block(move || {
+        goods_mapper::delete(id)
+    }).await.unwrap();
+    if res > 0 {
+        ResponseResult::ok_data(res)
+    } else {
+        ResponseResult::error_msg("update fail".to_string())
+    }
 }

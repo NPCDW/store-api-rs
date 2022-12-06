@@ -15,14 +15,40 @@ fn row_to_entity(row: &rusqlite::Row) -> Result<Goods, rusqlite::Error> {
     })
 }
 
-// fn entity_to_parameter<'a>(goods: &'a Goods) -> impl rusqlite::Params + 'a {
-//     let Goods {id, ..} = goods;
-//     let id: &'a u32  = &goods.id.clone();
-//     rusqlite::named_params! {
-//         ":id": id,
-//         ":create_time": "",
-//     }
-// }
+#[tokio::main]
+pub async fn count(name: Option<String>) -> usize {
+    let conn = DB_CONN_POOL.get().await.unwrap();
+    conn.interact(move |conn| {
+        let sql = format!("SELECT count(*) FROM goods {}", if name.is_none() { "" } else { "WHERE name like '%'||:name||'%'" });
+        let params = rusqlite::named_params!{":name": &name};
+
+        let mut stmt = conn.prepare(&sql).unwrap();
+        let mut rows = stmt.query(params).unwrap();
+        let row = rows.next().unwrap().unwrap();
+        row.get(0)
+    }).await.unwrap().unwrap()
+}
+
+#[tokio::main]
+pub async fn list(page_number: usize, page_size: usize, name: Option<String>) -> Vec<Goods> {
+    let conn = DB_CONN_POOL.get().await.unwrap();
+    conn.interact(move |conn| {
+        let sql = format!("SELECT count(*) FROM goods {} LIMIT :page_size OFFSET :start", if name.is_none() { "" } else { "WHERE name like '%'||:name||'%'" });
+        let params = rusqlite::named_params!{
+            ":name": &name,
+            ":page_size": &page_size,
+            ":start": (page_number - 1) * page_size,
+        };
+
+        let mut stmt = conn.prepare(&sql).unwrap();
+        let rows = stmt.query_map(params, row_to_entity).unwrap();
+        let mut result = vec![];
+        for item in rows {
+            result.push(item.unwrap());
+        }
+        result
+    }).await.unwrap()
+}
 
 #[tokio::main]
 pub async fn get_by_id(id: u32) -> Option<Goods> {
@@ -62,7 +88,7 @@ pub async fn get_by_qrcode(qrcode: String) -> Option<Goods> {
 pub async fn insert(goods: Goods) -> i64 {
     let conn = DB_CONN_POOL.get().await.unwrap();
     conn.interact(move |conn| {
-        let sql = format!("insert into goods (qrcode, name, cover, price, unit) values (:qrcode, :name, :cover, :price, :unit)");
+        let sql = "insert into goods (qrcode, name, cover, price, unit) values (:qrcode, :name, :cover, :price, :unit)";
         let params = rusqlite::named_params!{
             ":qrcode": &goods.qrcode,
             ":name": &goods.name,
@@ -71,8 +97,38 @@ pub async fn insert(goods: Goods) -> i64 {
             ":unit": &goods.unit,
         };
 
-        conn.execute(&sql, params).unwrap();
+        conn.execute(sql, params).unwrap();
         conn.last_insert_rowid()
+    }).await.unwrap()
+}
+
+#[tokio::main]
+pub async fn update(goods: Goods) -> usize {
+    let conn = DB_CONN_POOL.get().await.unwrap();
+    conn.interact(move |conn| {
+        let sql = "update goods set update_time = :update_time, qrcode = :qrcode, name = :name, cover = :cover, price = :price, unit = :unit where id = :id";
+        let params = rusqlite::named_params!{
+            ":id": &goods.id,
+            ":update_time": chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+            ":qrcode": &goods.qrcode,
+            ":name": &goods.name,
+            ":cover": &goods.cover,
+            ":price": &goods.price,
+            ":unit": &goods.unit,
+        };
+
+        conn.execute(sql, params).unwrap()
+    }).await.unwrap()
+}
+
+#[tokio::main]
+pub async fn delete(id: u32) -> usize {
+    let conn = DB_CONN_POOL.get().await.unwrap();
+    conn.interact(move |conn| {
+        let sql = "delete from goods where id = :id";
+        let params = rusqlite::named_params!{":id": &id};
+
+        conn.execute(sql, params).unwrap()
     }).await.unwrap()
 }
 
