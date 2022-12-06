@@ -15,7 +15,7 @@ use config::auth_config;
 use tracing_actix_web::TracingLogger;
 
 pub use crate::config::app_config::APP_CONFIG;
-
+// diesel::r2d2 (docs)
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::FmtSubscriber::builder()

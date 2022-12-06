@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Goods {
     pub id: Option<u32>,
+    #[serde(rename = "createTime")]
     pub create_time: Option<String>,
+    #[serde(rename = "updateTime")]
     pub update_time: Option<String>,
     pub qrcode: Option<String>,
     pub name: Option<String>,

@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ListQuery {
+    #[serde(rename = "pageNumber")]
     page_number: usize,
+    #[serde(rename = "pageSize")]
     page_size: usize,
     name: Option<String>,
 }
