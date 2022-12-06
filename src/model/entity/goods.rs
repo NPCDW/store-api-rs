@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Goods {
-    pub id: u32,
-    pub create_time: String,
-    pub update_time: String,
-    pub qrcode: String,
-    pub name: String,
-    pub cover: String,
-    pub price: f64,
-    pub unit: String,
+    pub id: Option<u32>,
+    pub create_time: Option<String>,
+    pub update_time: Option<String>,
+    pub qrcode: Option<String>,
+    pub name: Option<String>,
+    pub cover: Option<String>,
+    pub price: Option<f64>,
+    pub unit: Option<String>,
 }

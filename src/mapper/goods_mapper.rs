@@ -15,6 +15,15 @@ fn row_to_entity(row: &rusqlite::Row) -> Result<Goods, rusqlite::Error> {
     })
 }
 
+// fn entity_to_parameter<'a>(goods: &'a Goods) -> impl rusqlite::Params + 'a {
+//     let Goods {id, ..} = goods;
+//     let id: &'a u32  = &goods.id.clone();
+//     rusqlite::named_params! {
+//         ":id": id,
+//         ":create_time": "",
+//     }
+// }
+
 #[tokio::main]
 pub async fn get_by_id(id: u32) -> Option<Goods> {
     let conn = DB_CONN_POOL.get().await.unwrap();
@@ -49,27 +58,40 @@ pub async fn get_by_qrcode(qrcode: String) -> Option<Goods> {
     Some(res.unwrap().unwrap())
 }
 
+#[tokio::main]
+pub async fn insert(goods: Goods) -> i64 {
+    let conn = DB_CONN_POOL.get().await.unwrap();
+    conn.interact(move |conn| {
+        let sql = format!("insert into goods (qrcode, name, cover, price, unit) values (:qrcode, :name, :cover, :price, :unit)");
+        let params = rusqlite::named_params!{
+            ":qrcode": &goods.qrcode,
+            ":name": &goods.name,
+            ":cover": &goods.cover,
+            ":price": &goods.price,
+            ":unit": &goods.unit,
+        };
+
+        conn.execute(&sql, params).unwrap();
+        conn.last_insert_rowid()
+    }).await.unwrap()
+}
+
 #[cfg(test)]
 mod goods_mapper_test {
     use std::str::FromStr;
 
     use rust_decimal::Decimal;
-    // use super::*;
-    use time::{macros::format_description, PrimitiveDateTime};
-    
-    #[test]
-    fn test() {
-        let format = format_description!(
-            "[year]-[month]-[day] [hour]:[minute]:[second]"
-        );
-        let time = PrimitiveDateTime::parse("2020-01-02 03:04:05", &format);
-        println!("{:?}", time);
-    }
-    
+
     #[test]
     fn test2() {
         let dec = Decimal::from_str("19.023").unwrap();
         println!("{:?}", dec);
+    }
+    
+    #[test]
+    fn test3() {
+        let timestamp = chrono::Local::now().timestamp();
+        println!("{}", timestamp);
     }
     
 }
