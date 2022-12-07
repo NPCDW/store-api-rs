@@ -10,7 +10,7 @@ pub struct AppConfigLog {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfigDbSqlite {
     pub filepath: String,
-    pub max_pool_size: usize,
+    pub max_pool_size: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

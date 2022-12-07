@@ -8,14 +8,14 @@ mod mapper;
 extern crate lazy_static;
 
 use std::str::FromStr;
-use actix_web::{web, App, HttpServer};
+use actix_web::{App, HttpServer};
 use config::db_config;
 use config::router_config;
 use config::auth_config;
 use tracing_actix_web::TracingLogger;
 
 pub use crate::config::app_config::APP_CONFIG;
-// diesel::r2d2 (docs)
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::FmtSubscriber::builder()
@@ -23,9 +23,7 @@ async fn main() -> std::io::Result<()> {
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
         .init();
 
-    web::block(|| {
-        db_config::init()
-    }).await.unwrap();
+    db_config::init();
 
     HttpServer::new(move || {
         App::new()

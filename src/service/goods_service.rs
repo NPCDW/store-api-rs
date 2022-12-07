@@ -15,24 +15,18 @@ struct ListQuery {
 async fn list(info: web::Query<ListQuery>) -> impl Responder {
     let query = info.into_inner();
     let name = query.name.clone();
-    let count = web::block(move || {
-        goods_mapper::count(name)
-    }).await.unwrap();
+    let count = goods_mapper::count(name);
     if count <= 0 {
         return ResponseResult::ok_data(TableInfo::<Goods>::new(count, vec![]));
     }
-    let list = web::block(move || {
-        goods_mapper::list(query.page_number, query.page_size, query.name)
-    }).await.unwrap();
+    let list = goods_mapper::list(query.page_number, query.page_size, query.name);
     ResponseResult::ok_data(TableInfo::new(count, list))
 }
 
 #[get("/getInfo/{id}")]
 async fn get_info(path: web::Path<u32>) -> HttpResponse {
     let id = path.into_inner();
-    let goods = web::block(move || {
-        goods_mapper::get_by_id(id)
-    }).await.unwrap();
+    let goods = goods_mapper::get_by_id(id);
     ResponseResult::ok_data(goods)
 }
 
@@ -44,9 +38,7 @@ struct GetInfoByQrcodeQuery {
 #[get("/getInfoByQRCode")]
 async fn get_info_by_qrcode(info: web::Query<GetInfoByQrcodeQuery>) -> HttpResponse {
     let qrcode = info.into_inner().qrcode;
-    let goods = web::block(move || {
-        goods_mapper::get_by_qrcode(qrcode)
-    }).await.unwrap();
+    let goods = goods_mapper::get_by_qrcode(qrcode);
     ResponseResult::ok_data(goods)
 }
 
@@ -58,9 +50,7 @@ async fn create(info: web::Json<Goods>) -> HttpResponse {
         qrcode = Some(format!("-{}", chrono::Local::now().timestamp_millis()));
     }
     let goods = Goods { qrcode, ..goods };
-    let id = web::block(move || {
-        goods_mapper::insert(goods)
-    }).await.unwrap();
+    let id = goods_mapper::insert(goods);
     if id > 0 {
         ResponseResult::ok_data(id)
     } else {
@@ -71,9 +61,7 @@ async fn create(info: web::Json<Goods>) -> HttpResponse {
 #[put("/update")]
 async fn update(info: web::Json<Goods>) -> HttpResponse {
     let goods = info.into_inner();
-    let res = web::block(move || {
-        goods_mapper::update(goods)
-    }).await.unwrap();
+    let res = goods_mapper::update(goods);
     if res > 0 {
         ResponseResult::ok_data(res)
     } else {
@@ -84,9 +72,7 @@ async fn update(info: web::Json<Goods>) -> HttpResponse {
 #[delete("/remove/{id}")]
 async fn remove(path: web::Path<u32>) -> HttpResponse {
     let id = path.into_inner();
-    let res = web::block(move || {
-        goods_mapper::delete(id)
-    }).await.unwrap();
+    let res = goods_mapper::delete(id);
     if res > 0 {
         ResponseResult::ok_data(res)
     } else {

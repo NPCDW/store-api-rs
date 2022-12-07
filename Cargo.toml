@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.21.2", features = ["full"] }
 futures-util = "0.3"
 actix-web = "4"
 
@@ -24,9 +23,17 @@ tracing-actix-web = "0.6"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
-deadpool-sqlite = "0.5.0"
-
 uuid = "1.2.2"
+
+r2d2 = "0.8"
+r2d2_sqlite = "0.21"
+sea-query = { version = "^0" }
+sea-query-rusqlite = { version = "^0", features = [
+    "with-chrono",
+    "with-json",
+    "with-uuid",
+    "with-time",
+] }
 
 [dependencies.rusqlite]
 version = "0.28.0"
