@@ -11,16 +11,9 @@ services:
     ports:
       - 8888:8888
     volumes:
-      - "data:/data/"
+      - "./config:/data/resources/config"
+      - "./data:/data/sqlite"
     environment:
       TZ : 'Asia/Shanghai'
       LANG: 'C.UTF-8'
       LC_ALL: 'C.UTF-8'
-
-volumes:
-  data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data

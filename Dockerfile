@@ -19,9 +19,10 @@ RUN cargo clean
 RUN cargo build --release
 
 # Copy the statically-linked binary into a scratch container.
-FROM debian:buster-slim
+FROM debian:11.5-slim
+RUN apt-get update && apt-get install -y build-essential
 WORKDIR /data
 COPY ./resources ./resources
 COPY --from=build /usr/src/store-api-rs/target/release/store-api-rs ./store-api-rs
 USER root
-CMD ./store-api-rs
+CMD /data/store-api-rs
