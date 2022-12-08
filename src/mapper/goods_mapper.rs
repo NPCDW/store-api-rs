@@ -3,7 +3,6 @@ use sea_query_rusqlite::RusqliteBinder;
 
 use crate::{model::entity::goods::Goods, config::db_config::DB_CONN_POOL};
 
-static GOODS_FIELDS: &'static str = "id, create_time, update_time, qrcode, name, cover, price, unit";
 pub enum GoodsFields {
     Table, Id, CreateTime, UpdateTime, Qrcode, Name, Cover, Price, Unit
 }
@@ -94,12 +93,24 @@ pub fn list(page_number: u64, page_size: u64, name: Option<String>) -> Vec<Goods
 }
 
 pub fn get_by_id(id: u32) -> Option<Goods> {
-    let sql = format!("SELECT {GOODS_FIELDS} FROM goods WHERE id = :id");
-    let params = rusqlite::named_params!{":id": &id};
+    let (sql, params) = Query::select()
+        .columns([
+            GoodsFields::Id,
+            GoodsFields::CreateTime,
+            GoodsFields::UpdateTime,
+            GoodsFields::Qrcode,
+            GoodsFields::Name,
+            GoodsFields::Cover,
+            GoodsFields::Price,
+            GoodsFields::Unit,
+        ])
+        .from(GoodsFields::Table)
+        .and_where(Expr::col(GoodsFields::Id).eq(id))
+        .build_rusqlite(SqliteQueryBuilder);
 
     let conn = DB_CONN_POOL.get().unwrap();
     let mut stmt = conn.prepare(&sql).unwrap();
-    let mut result = stmt.query_map(params, row_to_entity).unwrap();
+    let mut result = stmt.query_map(&*params.as_params(), row_to_entity).unwrap();
     let res = result.next();
     if res.is_none() {
         return None;
@@ -108,12 +119,24 @@ pub fn get_by_id(id: u32) -> Option<Goods> {
 }
 
 pub fn get_by_qrcode(qrcode: String) -> Option<Goods> {
-    let sql = format!("SELECT {GOODS_FIELDS} FROM goods WHERE qrcode = :qrcode");
-    let params = rusqlite::named_params!{":qrcode": &qrcode};
+    let (sql, params) = Query::select()
+        .columns([
+            GoodsFields::Id,
+            GoodsFields::CreateTime,
+            GoodsFields::UpdateTime,
+            GoodsFields::Qrcode,
+            GoodsFields::Name,
+            GoodsFields::Cover,
+            GoodsFields::Price,
+            GoodsFields::Unit,
+        ])
+        .from(GoodsFields::Table)
+        .and_where(Expr::col(GoodsFields::Qrcode).eq(qrcode))
+        .build_rusqlite(SqliteQueryBuilder);
 
     let conn = DB_CONN_POOL.get().unwrap();
     let mut stmt = conn.prepare(&sql).unwrap();
-    let mut result = stmt.query_map(params, row_to_entity).unwrap();
+    let mut result = stmt.query_map(&*params.as_params(), row_to_entity).unwrap();
     let res = result.next();
     if res.is_none() {
         return None;
@@ -122,34 +145,45 @@ pub fn get_by_qrcode(qrcode: String) -> Option<Goods> {
 }
 
 pub fn insert(goods: Goods) -> i64 {
-    let sql = "insert into goods (qrcode, name, cover, price, unit) values (:qrcode, :name, :cover, :price, :unit)";
-    let params = rusqlite::named_params!{
-        ":qrcode": &goods.qrcode,
-        ":name": &goods.name,
-        ":cover": &goods.cover,
-        ":price": &goods.price,
-        ":unit": &goods.unit,
-    };
+    let (sql, params) = Query::insert()
+        .into_table(GoodsFields::Table)
+        .columns([
+            GoodsFields::Qrcode,
+            GoodsFields::Name,
+            GoodsFields::Cover,
+            GoodsFields::Price,
+            GoodsFields::Unit,
+        ])
+        .values_panic([
+            goods.qrcode.into(),
+            goods.name.into(),
+            goods.cover.into(),
+            goods.price.into(),
+            goods.unit.into(),
+        ])
+        .build_rusqlite(SqliteQueryBuilder);
 
     let conn = DB_CONN_POOL.get().unwrap();
-    conn.execute(sql, params).unwrap();
+    conn.execute(&sql, &*params.as_params()).unwrap();
     conn.last_insert_rowid()
 }
 
 pub fn update(goods: Goods) -> usize {
-    let sql = "update goods set update_time = :update_time, qrcode = :qrcode, name = :name, cover = :cover, price = :price, unit = :unit where id = :id";
-    let params = rusqlite::named_params!{
-        ":id": &goods.id,
-        ":update_time": chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-        ":qrcode": &goods.qrcode,
-        ":name": &goods.name,
-        ":cover": &goods.cover,
-        ":price": &goods.price,
-        ":unit": &goods.unit,
-    };
+    let (sql, params) = Query::update()
+        .table(GoodsFields::Table)
+        .values([
+            (GoodsFields::UpdateTime, chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string().into()),
+            (GoodsFields::Qrcode, goods.qrcode.into()),
+            (GoodsFields::Name, goods.name.into()),
+            (GoodsFields::Cover, goods.cover.into()),
+            (GoodsFields::Price, goods.price.into()),
+            (GoodsFields::Unit, goods.unit.into()),
+        ])
+        .and_where(Expr::col(GoodsFields::Id).eq(goods.id))
+        .build_rusqlite(SqliteQueryBuilder);
 
     let conn = DB_CONN_POOL.get().unwrap();
-    conn.execute(sql, params).unwrap()
+    conn.execute(&sql, &*params.as_params()).unwrap()
 }
 
 pub fn delete(id: u32) -> usize {
