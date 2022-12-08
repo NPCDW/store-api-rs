@@ -38,7 +38,7 @@ fn row_to_entity(row: &rusqlite::Row) -> Result<Goods, rusqlite::Error> {
     })
 }
 
-pub fn count(name: Option<String>) -> usize {
+pub fn count(name: Option<String>) -> Result<usize, Box<dyn std::error::Error>> {
     let (sql, params) = Query::select()
         .from(GoodsFields::Table)
         .conditions(
@@ -51,14 +51,14 @@ pub fn count(name: Option<String>) -> usize {
         .expr(Func::count(Expr::col(GoodsFields::Id)))
         .build_rusqlite(SqliteQueryBuilder);
 
-    let conn = DB_CONN_POOL.get().unwrap();
-    let mut stmt = conn.prepare(sql.as_str()).unwrap();
-    let mut rows = stmt.query(&*params.as_params()).unwrap();
-    let row = rows.next().unwrap().unwrap();
-    row.get(0).unwrap()
+    let conn = DB_CONN_POOL.get()?;
+    let mut stmt = conn.prepare(sql.as_str())?;
+    let mut rows = stmt.query(&*params.as_params())?;
+    let row = rows.next()?.unwrap();
+    Ok(row.get(0)?)
 }
 
-pub fn list(page_number: u64, page_size: u64, name: Option<String>) -> Vec<Goods> {
+pub fn list(page_number: u64, page_size: u64, name: Option<String>) -> Result<Vec<Goods>, Box<dyn std::error::Error>> {
     let (sql, params) = Query::select()
         .columns([
             GoodsFields::Id,
@@ -82,17 +82,17 @@ pub fn list(page_number: u64, page_size: u64, name: Option<String>) -> Vec<Goods
         .limit(page_size).offset((page_number - 1) * page_size)
         .build_rusqlite(SqliteQueryBuilder);
 
-    let conn = DB_CONN_POOL.get().unwrap();
-    let mut stmt = conn.prepare(&sql).unwrap();
-    let rows = stmt.query_map(&*params.as_params(), row_to_entity).unwrap();
+    let conn = DB_CONN_POOL.get()?;
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map(&*params.as_params(), row_to_entity)?;
     let mut result = vec![];
     for item in rows {
-        result.push(item.unwrap());
+        result.push(item?);
     }
-    result
+    Ok(result)
 }
 
-pub fn get_by_id(id: u32) -> Option<Goods> {
+pub fn get_by_id(id: u32) -> Result<Option<Goods>, Box<dyn std::error::Error>> {
     let (sql, params) = Query::select()
         .columns([
             GoodsFields::Id,
@@ -108,17 +108,17 @@ pub fn get_by_id(id: u32) -> Option<Goods> {
         .and_where(Expr::col(GoodsFields::Id).eq(id))
         .build_rusqlite(SqliteQueryBuilder);
 
-    let conn = DB_CONN_POOL.get().unwrap();
-    let mut stmt = conn.prepare(&sql).unwrap();
-    let mut result = stmt.query_map(&*params.as_params(), row_to_entity).unwrap();
+    let conn = DB_CONN_POOL.get()?;
+    let mut stmt = conn.prepare(&sql)?;
+    let mut result = stmt.query_map(&*params.as_params(), row_to_entity)?;
     let res = result.next();
     if res.is_none() {
-        return None;
+        return Ok(None);
     }
-    Some(res.unwrap().unwrap())
+    Ok(Some(res.unwrap()?))
 }
 
-pub fn get_by_qrcode(qrcode: String) -> Option<Goods> {
+pub fn get_by_qrcode(qrcode: String) -> Result<Option<Goods>, Box<dyn std::error::Error>> {
     let (sql, params) = Query::select()
         .columns([
             GoodsFields::Id,
@@ -134,17 +134,17 @@ pub fn get_by_qrcode(qrcode: String) -> Option<Goods> {
         .and_where(Expr::col(GoodsFields::Qrcode).eq(qrcode))
         .build_rusqlite(SqliteQueryBuilder);
 
-    let conn = DB_CONN_POOL.get().unwrap();
-    let mut stmt = conn.prepare(&sql).unwrap();
-    let mut result = stmt.query_map(&*params.as_params(), row_to_entity).unwrap();
+    let conn = DB_CONN_POOL.get()?;
+    let mut stmt = conn.prepare(&sql)?;
+    let mut result = stmt.query_map(&*params.as_params(), row_to_entity)?;
     let res = result.next();
     if res.is_none() {
-        return None;
+        return Ok(None);
     }
-    Some(res.unwrap().unwrap())
+    Ok(Some(res.unwrap()?))
 }
 
-pub fn insert(goods: Goods) -> i64 {
+pub fn insert(goods: Goods) -> Result<i64, Box<dyn std::error::Error>> {
     let (sql, params) = Query::insert()
         .into_table(GoodsFields::Table)
         .columns([
@@ -163,12 +163,12 @@ pub fn insert(goods: Goods) -> i64 {
         ])
         .build_rusqlite(SqliteQueryBuilder);
 
-    let conn = DB_CONN_POOL.get().unwrap();
-    conn.execute(&sql, &*params.as_params()).unwrap();
-    conn.last_insert_rowid()
+    let conn = DB_CONN_POOL.get()?;
+    conn.execute(&sql, &*params.as_params())?;
+    Ok(conn.last_insert_rowid())
 }
 
-pub fn update(goods: Goods) -> usize {
+pub fn update(goods: Goods) -> Result<usize, Box<dyn std::error::Error>> {
     let (sql, params) = Query::update()
         .table(GoodsFields::Table)
         .values([
@@ -182,16 +182,18 @@ pub fn update(goods: Goods) -> usize {
         .and_where(Expr::col(GoodsFields::Id).eq(goods.id))
         .build_rusqlite(SqliteQueryBuilder);
 
-    let conn = DB_CONN_POOL.get().unwrap();
-    conn.execute(&sql, &*params.as_params()).unwrap()
+    let conn = DB_CONN_POOL.get()?;
+    let res = conn.execute(&sql, &*params.as_params())?;
+    Ok(res)
 }
 
-pub fn delete(id: u32) -> usize {
+pub fn delete(id: u32) -> Result<usize, Box<dyn std::error::Error>> {
     let sql = "delete from goods where id = :id";
     let params = rusqlite::named_params!{":id": &id};
 
-    let conn = DB_CONN_POOL.get().unwrap();
-    conn.execute(sql, params).unwrap()
+    let conn = DB_CONN_POOL.get()?;
+    let res = conn.execute(sql, params)?;
+    Ok(res)
 }
 
 #[cfg(test)]

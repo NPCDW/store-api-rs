@@ -11,20 +11,16 @@ pub fn read_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
 }
 
 #[allow(dead_code)]
-pub fn write_file(path: &Path, text: &str) {
-    let mut file = File::create(path).unwrap_or_else(|e| {
-        panic!("Could not create file: {:?}", e);
-    });
-    file.write_all(text.as_bytes()).unwrap_or_else(|e| {
-        panic!("Write file: {:?}", e);
-    });
+pub fn write_file(path: &Path, text: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let mut file = File::create(path)?;
+    file.write_all(text.as_bytes())?;
+    Ok(())
 }
 
 #[allow(dead_code)]
-pub fn create_dir(path: &Path) {
-    fs::create_dir_all(path).unwrap_or_else(|e| {
-        panic!("Could not create file directory: {}, {:?}", &path.display(), e)
-    });
+pub fn create_dir(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    fs::create_dir_all(path)?;
+    Ok(())
 }
 
 #[allow(dead_code)]

@@ -67,6 +67,7 @@ where
             let res = fut.await;
 
             if res.is_err() {
+                tracing::error!("{:?}", res.err());
                 return Err(error::ErrorInternalServerError("Internal Server Error"));
             }
 

@@ -1,4 +1,4 @@
-use std::path::{Path};
+use std::path::Path;
 
 extern crate r2d2;
 extern crate r2d2_sqlite;
@@ -29,7 +29,9 @@ lazy_static! {
 pub fn init() {
     init_file();
 
-    migrate_db();
+    migrate_db().unwrap_or_else(|e| {
+        panic!("Migrate DB FAIL, {:?}", e)
+    });
 }
 
 fn init_file() {
@@ -38,39 +40,44 @@ fn init_file() {
     file_util::create_file(db_filepath);
 }
 
-fn migrate_db() {
+fn migrate_db() -> Result<(), rusqlite::Error> {
     tracing::info!("Migrate DB");
-    let conn = DB_CONN_POOL.get().unwrap();
-    let mut stmt = conn.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'version'").unwrap();
-    let mut rows = stmt.query([]).unwrap();
-    let row = rows.next().unwrap().unwrap();
-    let exist: i64 = row.get(0).unwrap();
+    let conn = DB_CONN_POOL.get().unwrap_or_else(|e| {
+        panic!("数据库连接池获取连接失败，{:?}", e)
+    });
+    let mut stmt = conn.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = 'version'")?;
+    let mut rows = stmt.query([])?;
+    let row = rows.next()?.unwrap_or_else(|| {
+        panic!("第一行数据为空")
+    });
+    let exist: i64 = row.get(0)?;
     let current_version: String;
     if exist <= 0 {
         current_version = "".to_string();
     } else {
-        let mut stmt = conn.prepare("SELECT version FROM version order by id desc limit 1").unwrap();
-        let mut rows = stmt.query([]).unwrap();
-        let row = rows.next().unwrap().unwrap();
-        current_version = row.get(0).unwrap();
+        let mut stmt = conn.prepare("SELECT version FROM version order by id desc limit 1")?;
+        let mut rows = stmt.query([])?;
+        let row = rows.next()?.unwrap();
+        current_version = row.get(0)?;
     }
     if current_version[..] == DB_VERSION_LIST.last().unwrap()[..] {
         tracing::info!("DB version is match, current version {}", &current_version);
-        return;
+        return Ok(());
     }
     tracing::info!("DB version require {}, Current version is {}, start upgrade db", &DB_VERSION_LIST.last().unwrap(), &current_version);
+    let mut dir = std::env::current_dir().unwrap_or_else(|e| {
+        panic!("获取程序目录失败：{:?}", e);
+    });
+    dir.push("resources/db/");
     for item in &*DB_VERSION_LIST {
         if current_version[..] < item[..] {
-            let dir = std::env::current_dir().unwrap_or_else(|e| {
-                panic!("获取程序目录失败：{:?}", e);
+            let sql_file_path = dir.join(format!("{}.sql", item));
+            let sql = file_util::read_file(&sql_file_path).unwrap_or_else(|e| {
+                panic!("读取SQL文件失败，文件地址：{}，错误：{:?}", &sql_file_path.display(), e);
             });
-            let sql_file_path = dir.join("resources/db/").join(format!("{}.sql", item));
-            let sql = file_util::read_file(&sql_file_path).unwrap();
-            let result = conn.execute_batch(&sql);
-            if result.is_err() {
-                tracing::error!("{:?}", result);
-            };
+            conn.execute_batch(&sql)?;
         }
     }
     tracing::info!("DB upgrade finished");
+    Ok(())
 }
