@@ -66,12 +66,13 @@ where
         Box::pin(async move {
             let res = fut.await;
 
-            if res.is_err() {
-                tracing::error!("{:?}", res.err());
-                return Err(error::ErrorInternalServerError("Internal Server Error"));
+            match res {
+                Ok(_) => res,
+                Err(e) => {
+                    tracing::error!("{:?}", e);
+                    return Err(error::ErrorInternalServerError("Internal Server Error"));
+                }
             }
-
-            Ok(res.unwrap())
         })
     }
 }
