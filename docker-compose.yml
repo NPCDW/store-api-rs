@@ -1,0 +1,23 @@
+version: '3.3'
+
+services:
+  store-api-rs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: store-api-rs
+    container_name: store-api-rs
+    volumes:
+      - "data:/data/"
+    environment:
+      TZ : 'Asia/Shanghai'
+      LANG: 'C.UTF-8'
+      LC_ALL: 'C.UTF-8'
+
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data
