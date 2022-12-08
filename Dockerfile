@@ -15,12 +15,13 @@ RUN cargo build --release
 
 # Copy the source and build the application.
 COPY ./src ./src
-RUN cargo install --path .
+RUN cargo clean
+RUN cargo build --release
 
 # Copy the statically-linked binary into a scratch container.
 FROM debian:buster-slim
 WORKDIR /data
 COPY ./resources ./resources
-COPY --from=build /usr/local/cargo/bin/store-api-rs /data/store-api-rs
+COPY --from=build /usr/src/store-api-rs/target/release/store-api-rs ./store-api-rs
 USER root
 CMD ./store-api-rs
