@@ -7,6 +7,9 @@ services:
       dockerfile: Dockerfile
     image: store-api-rs
     container_name: store-api-rs
+    network_mode: "bridge"
+    ports:
+      - 8888:8888
     volumes:
       - "data:/data/"
     environment:
