@@ -1,3 +1,4 @@
+use chrono::prelude::*;
 use sea_query::{Expr, Iden, Query, SqliteQueryBuilder, Func, Order};
 use sea_query_rusqlite::RusqliteBinder;
 
@@ -26,10 +27,12 @@ impl Iden for GoodsFields {
 }
 
 fn row_to_entity(row: &rusqlite::Row) -> Result<Goods, rusqlite::Error> {
+    let create_time: String = row.get("create_time")?;
+    let update_time: String = row.get("update_time")?;
     Ok(Goods {
         id: row.get("id")?,
-        create_time: row.get("create_time")?,
-        update_time: row.get("update_time")?,
+        create_time: Some(NaiveDateTime::parse_from_str(&create_time, "%Y-%m-%d %H:%M:%S").unwrap()),
+        update_time: Some(NaiveDateTime::parse_from_str(&update_time, "%Y-%m-%d %H:%M:%S").unwrap()),
         qrcode: row.get("qrcode")?,
         name: row.get("name")?,
         cover: row.get("cover")?,
@@ -172,7 +175,7 @@ pub fn update(goods: Goods) -> Result<usize, Box<dyn std::error::Error>> {
     let (sql, params) = Query::update()
         .table(GoodsFields::Table)
         .values([
-            (GoodsFields::UpdateTime, chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string().into()),
+            (GoodsFields::UpdateTime, chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string().into()),
             (GoodsFields::Qrcode, goods.qrcode.into()),
             (GoodsFields::Name, goods.name.into()),
             (GoodsFields::Cover, goods.cover.into()),
