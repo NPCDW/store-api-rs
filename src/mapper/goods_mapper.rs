@@ -172,16 +172,27 @@ pub fn insert(goods: Goods) -> Result<i64, Box<dyn std::error::Error>> {
 }
 
 pub fn update(goods: Goods) -> Result<usize, Box<dyn std::error::Error>> {
+    let mut values = vec![];
+    values.push((GoodsFields::UpdateTime, chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string().into()));
+    if goods.qrcode.is_some() {
+        values.push((GoodsFields::Qrcode, goods.qrcode.into()));
+    }
+    if goods.name.is_some() {
+        values.push((GoodsFields::Name, goods.name.into()));
+    }
+    if goods.cover.is_some() {
+        values.push((GoodsFields::Cover, goods.cover.into()));
+    }
+    if goods.price.is_some() {
+        values.push((GoodsFields::Price, goods.price.into()));
+    }
+    if goods.unit.is_some() {
+        values.push((GoodsFields::Unit, goods.unit.into()));
+    }
+
     let (sql, params) = Query::update()
         .table(GoodsFields::Table)
-        .values([
-            (GoodsFields::UpdateTime, chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string().into()),
-            (GoodsFields::Qrcode, goods.qrcode.into()),
-            (GoodsFields::Name, goods.name.into()),
-            (GoodsFields::Cover, goods.cover.into()),
-            (GoodsFields::Price, goods.price.into()),
-            (GoodsFields::Unit, goods.unit.into()),
-        ])
+        .values(values)
         .and_where(Expr::col(GoodsFields::Id).eq(goods.id))
         .build_rusqlite(SqliteQueryBuilder);
 
