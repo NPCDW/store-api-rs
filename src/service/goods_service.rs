@@ -44,12 +44,10 @@ async fn get_info_by_qrcode(info: web::Query<GetInfoByQrcodeQuery>) -> Result<Ht
 
 #[post("/create")]
 async fn create(info: web::Json<Goods>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
-    let goods = info.into_inner();
-    let mut qrcode = goods.qrcode.clone();
-    if goods.qrcode.is_none() || goods.qrcode.unwrap().is_empty() {
-        qrcode = Some(format!("-{}", chrono::Local::now().timestamp_millis()));
+    let mut goods = info.into_inner();
+    if goods.qrcode.is_none() || goods.qrcode.as_ref().unwrap().is_empty() {
+        goods.qrcode = Some(format!("-{}", chrono::Local::now().timestamp_millis()));
     }
-    let goods = Goods { qrcode, ..goods };
     let id = goods_mapper::insert(goods)?;
     if id > 0 {
         ResponseResult::ok_data(id)
@@ -77,5 +75,25 @@ async fn remove(path: web::Path<u32>) -> Result<HttpResponse, Box<dyn std::error
         ResponseResult::ok_data(res)
     } else {
         ResponseResult::error_msg("update fail".to_string())
+    }
+}
+
+#[cfg(test)]
+mod goods_service_test {
+    use crate::model::entity::goods::Goods;
+
+    #[test]
+    fn test() {
+        let mut goods = Goods { ..Default::default() };
+        if goods.qrcode.is_none() || goods.qrcode.as_ref().unwrap().is_empty() {
+            goods.qrcode = Some("123".to_string());
+        }
+        println!("{:?}", goods);
+
+        let mut qrcode = Some("123").clone();
+        if qrcode.is_none() || qrcode.unwrap().is_empty() {
+            qrcode = Some("456");
+        }
+        println!("{:?}", qrcode);
     }
 }

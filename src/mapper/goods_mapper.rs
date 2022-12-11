@@ -45,11 +45,9 @@ pub fn count(name: Option<String>) -> Result<usize, Box<dyn std::error::Error>> 
     let (sql, params) = Query::select()
         .from(GoodsFields::Table)
         .conditions(
-            name.is_none(),
-            |_| {},
-            |q| {
+            name.is_some(), |q| {
                 q.and_where(Expr::col(GoodsFields::Name).like(format!("%{}%", name.unwrap())));
-            },
+            }, |_| {}
         )
         .expr(Func::count(Expr::col(GoodsFields::Id)))
         .build_rusqlite(SqliteQueryBuilder);
@@ -75,11 +73,9 @@ pub fn list(page_number: u64, page_size: u64, name: Option<String>) -> Result<Ve
         ])
         .from(GoodsFields::Table)
         .conditions(
-            name.is_none(),
-            |_| {},
-            |q| {
+            name.is_none(), |q| {
                 q.and_where(Expr::col(GoodsFields::Name).like(format!("%{}%", name.unwrap())));
-            },
+            }, |_| {}
         )
         .order_by(GoodsFields::CreateTime, Order::Desc)
         .limit(page_size).offset((page_number - 1) * page_size)
