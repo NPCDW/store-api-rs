@@ -10,6 +10,7 @@ extern crate lazy_static;
 use std::str::FromStr;
 use actix_web::{App, HttpServer};
 use config::db_config;
+use service::app_version_service;
 use config::router_config;
 use config::auth_config;
 use tracing_actix_web::TracingLogger;
@@ -22,6 +23,8 @@ async fn main() -> std::io::Result<()> {
         .with_max_level(tracing::Level::from_str(&APP_CONFIG.log.level).unwrap())
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE)
         .init();
+
+    app_version_service::print();
 
     db_config::init();
 
