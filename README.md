@@ -9,10 +9,6 @@
 
 `rust web` 应用模板，`web` 框架使用 `actix-web`
 
-## 功能
-
-实现了 [store-api](https://github.com/NPCDW/store-api) 和 [store-api-vertx](https://github.com/NPCDW/store-api-vertx) 同样的功能，但不得不说， `rust` 真乃内存管理大师， `docker` 中初始内存占用只有 `2M` ，调用了几次 `api` ，内存才到 `3M`
-
 ## Docker 自行构建
 
 首先先拉取本项目
